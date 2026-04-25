@@ -1,0 +1,42 @@
+import { request } from "./api.ts";
+
+export const publicProductApi = {
+  getAll: () => request("/public/fetch/product/all"),
+  getById: (id: string) => request(`/public/fetch/product/${id}`),
+};
+
+export const publicAuthApi = {
+  checkPhoneNumber: (phoneNumber: string) =>
+    request("/public/auth/check/phone-number", {
+      method: "POST",
+      body: { phoneNumber },
+    }),
+
+  sendOtp: () =>
+    request("/public/auth/otp/send", {
+      method: "POST",
+    }),
+
+  verifyOtp: (otp: string) =>
+    request("/public/auth/otp/verify", {
+      method: "POST",
+      body: { otp },
+    }),
+
+  register: (data: { name: string; email: string; password: string }) =>
+    request("/public/auth/user/signup", {
+      method: "POST",
+      body: data,
+    }),
+
+  applyReferralCode: (referralCode: string) =>
+    request("/public/apply/coupon/referral", {
+      method: "POST",
+      body: { referralCode },
+    }),
+};
+
+export const publicShippingApi = {
+  checkServiceability: (pincode: string) =>
+    request(`/public/check/serviceability?pincode=${pincode}`),
+};

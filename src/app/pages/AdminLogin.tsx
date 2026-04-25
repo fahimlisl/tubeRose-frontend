@@ -1,49 +1,51 @@
-import React, { useState, FormEvent, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { useAuth } from '../hooks/useAuth';
-import { ArrowLeft, Mail, Lock, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, FormEvent, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
+import { useAdminAuth } from "../context/AdminAuthContext";
+import { ArrowLeft, Mail, Lock, ShieldCheck, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  
-  const { login, user, isLoading } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+
+  const { login, admin, isLoading, error } = useAdminAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+
+  const from = (location.state as any)?.from?.pathname || "/admin";
 
   useEffect(() => {
-    // If the user is already logged in, redirect them to the admin dashboard.
-    // Note: In production, you should also verify user.role === 'admin' here.
-    if (user && !isLoading) {
-      const from = location.state?.from?.pathname || '/admin';
+    if (admin && !isLoading) {
       navigate(from, { replace: true });
     }
-  }, [user, isLoading, navigate, location]);
+  }, [admin, isLoading]);
 
-  if (user && !isLoading) {
-    return null;
-  }
+  if (admin && !isLoading) return null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    await login(email, password);
-    // After successful login, the useEffect above will trigger the redirect
+    try {
+      await login(email, password);
+    } catch {
+      // error is already set in context, just stop here
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4 md:p-8">
       <div className="w-full max-w-md">
-        <Link to="/" className="inline-flex items-center text-sm font-medium text-neutral-500 hover:text-neutral-900 mb-8 transition-colors">
+        <Link
+          to="/"
+          className="inline-flex items-center text-sm font-medium text-neutral-500 hover:text-neutral-900 mb-8 transition-colors"
+        >
           <ArrowLeft size={16} className="mr-2" />
           Back to storefront
         </Link>
-        
+
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden relative">
-          {/* Subtle top border accent to distinguish the admin panel */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-neutral-900" />
-          
+
           <div className="p-8 pt-10">
             <div className="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center mb-6">
               <ShieldCheck size={24} className="text-neutral-900" />
@@ -55,6 +57,19 @@ export function AdminLogin() {
             <p className="text-sm text-neutral-500 mb-8">
               Sign in with your administrator credentials to access the dashboard.
             </p>
+
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="flex items-center justify-between gap-3 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-6"
+                >
+                  <span>{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
@@ -81,9 +96,6 @@ export function AdminLogin() {
                   <label className="block text-sm font-medium text-neutral-700">
                     Password
                   </label>
-                  <a href="#" className="text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors">
-                    Forgot password?
-                  </a>
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
@@ -112,7 +124,7 @@ export function AdminLogin() {
                     className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
                   />
                 ) : (
-                  'Authorize Access'
+                  "Authorize Access"
                 )}
               </button>
             </form>

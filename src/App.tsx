@@ -8,6 +8,8 @@ import { RootLayout } from "./app/layouts/RootLayout";
 import { AdminLayout } from "./app/pages/admin/AdminLayout";
 import { AuthProvider } from "./app/hooks/useAuth";
 import { CartProvider } from "./app/hooks/useCart";
+import { AdminAuthProvider } from "./app/context/AdminAuthContext";
+import { AdminProtectedRoute } from "./app/components/AdminProtectedRoute";
 
 import { HomePage } from "./app/pages/HomePage";
 import { ShopPage } from "./app/pages/ShopPage";
@@ -23,6 +25,8 @@ import { AdminProducts } from "./app/pages/admin/AdminProducts";
 import { AdminOrders } from "./app/pages/admin/AdminOrders";
 import { AdminOffers } from "./app/pages/admin/AdminOffers";
 import { AdminAddProduct } from "./app/pages/admin/AdminAddProduct";
+import { CheckoutPage } from "./app/pages/CheckoutPage";
+import { OrderSuccessPage } from "./app/pages/OrderSuccessPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -56,34 +60,45 @@ function ScrollToTop() {
 function AppRoutes() {
   return (
     <>
-      {/* Global Toast */}
       <Toaster position="bottom-right" theme="light" />
-
       <ScrollToTop />
 
       <Routes>
-        {/* Public routes with layout */}
+        {/*  Public routes  */}
         <Route element={<RootLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/"            element={<HomePage />} />
+          <Route path="/shop"        element={<ShopPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/account" element={<AccountPage />} />
-          <Route path="/auth/admin" element={<AdminLogin />} />
+          <Route path="/cart"        element={<CartPage />} />
+          <Route path="/about"       element={<AboutPage />} />
+          <Route path="/auth"        element={<AuthPage />} />
+          <Route path="/account"     element={<AccountPage />} />
+          {/* need to change to user section for more secure */}
+          <Route path="/checkout" element={<CheckoutPage />} />
+<Route path="/order/:orderId" element={<OrderSuccessPage />} />
+{/* <Route path="/orders" element={<OrdersPage />} /> // for order history later */}
         </Route>
 
-        {/* Admin routes with admin layout */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="add/product" element={<AdminAddProduct />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="offers" element={<AdminOffers />} />
+        {/*  Admin login — outside RootLayout, outside protection  */}
+        <Route path="/auth/admin" element={<AdminLogin />} />
+
+        {/*  Protected admin routes  */}
+        <Route
+          path="/admin"
+          element={
+            <AdminProtectedRoute>
+              <AdminLayout />
+            </AdminProtectedRoute>
+          }
+        >
+          <Route index                element={<AdminDashboard />} />
+          <Route path="products"      element={<AdminProducts />} />
+          <Route path="add/product"   element={<AdminAddProduct />} />
+          <Route path="orders"        element={<AdminOrders />} />
+          <Route path="offers"        element={<AdminOffers />} />
         </Route>
 
-        {/* 404 Not Found */}
+        {/* 404  */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
@@ -94,7 +109,9 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <AppRoutes />
+        <AdminAuthProvider>
+          <AppRoutes />
+        </AdminAuthProvider>
       </CartProvider>
     </AuthProvider>
   );

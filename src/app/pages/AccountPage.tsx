@@ -163,7 +163,11 @@ export function AccountPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-neutral-500 mb-1">User ID</label>
-                      <div className="text-neutral-500 text-sm font-mono">{user.id}</div>
+                      <div className="text-neutral-900 text-sm font-mono">{user._id}</div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-500 mb-1">Phone Number</label>
+                      <div className="text-neutral-900 text-sm font-mono">{user.phoneNumber}</div>
                     </div>
                     <button className="mt-6 border border-neutral-200 rounded-lg px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors">
                       Edit Profile

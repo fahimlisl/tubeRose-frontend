@@ -27,6 +27,7 @@ import { AdminOffers } from "./app/pages/admin/AdminOffers";
 import { AdminAddProduct } from "./app/pages/admin/AdminAddProduct";
 import { CheckoutPage } from "./app/pages/CheckoutPage";
 import { OrderSuccessPage } from "./app/pages/OrderSuccessPage";
+import { AdminEditProduct } from "./app/pages/admin/AdminEditProduct";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -66,17 +67,17 @@ function AppRoutes() {
       <Routes>
         {/*  Public routes  */}
         <Route element={<RootLayout />}>
-          <Route path="/"            element={<HomePage />} />
-          <Route path="/shop"        element={<ShopPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/shop" element={<ShopPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
-          <Route path="/cart"        element={<CartPage />} />
-          <Route path="/about"       element={<AboutPage />} />
-          <Route path="/auth"        element={<AuthPage />} />
-          <Route path="/account"     element={<AccountPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/account" element={<AccountPage />} />
           {/* need to change to user section for more secure */}
           <Route path="/checkout" element={<CheckoutPage />} />
-<Route path="/order/:orderId" element={<OrderSuccessPage />} />
-{/* <Route path="/orders" element={<OrdersPage />} /> // for order history later */}
+          <Route path="/order/:orderId" element={<OrderSuccessPage />} />
+          {/* <Route path="/orders" element={<OrdersPage />} /> // for order history later */}
         </Route>
 
         {/*  Admin login — outside RootLayout, outside protection  */}
@@ -91,11 +92,12 @@ function AppRoutes() {
             </AdminProtectedRoute>
           }
         >
-          <Route index                element={<AdminDashboard />} />
-          <Route path="products"      element={<AdminProducts />} />
-          <Route path="add/product"   element={<AdminAddProduct />} />
-          <Route path="orders"        element={<AdminOrders />} />
-          <Route path="offers"        element={<AdminOffers />} />
+          <Route index element={<AdminDashboard />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="add/product" element={<AdminAddProduct />} />
+          <Route path="edit/product/:id" element={<AdminEditProduct />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="offers" element={<AdminOffers />} />
         </Route>
 
         {/* 404  */}

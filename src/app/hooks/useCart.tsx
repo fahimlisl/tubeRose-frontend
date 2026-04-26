@@ -115,7 +115,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     if (user) {
       try {
-        await userCartApi.add(product._id, sizeLabel, quantity);
+        console.log(sizeLabel)
+        await userCartApi.add(product._id, quantity,sizeLabel);
         await loadDbCart();
         toast.success(`${product.title} added to cart!`);
       } catch (err: unknown) {
@@ -190,7 +191,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     if (user) {
       try {
-        await userCartApi.updateQuantity(productId, sizeLabel, quantity);
+        await userCartApi.updateQuantity(productId, quantity, sizeLabel);
         setItems((prev) =>
           prev.map((i) =>
             i.product._id === productId && i.sizeLabel === sizeLabel

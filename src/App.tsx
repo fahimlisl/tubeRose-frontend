@@ -28,6 +28,8 @@ import { AdminAddProduct } from "./app/pages/admin/AdminAddProduct";
 import { CheckoutPage } from "./app/pages/CheckoutPage";
 import { OrderSuccessPage } from "./app/pages/OrderSuccessPage";
 import { AdminEditProduct } from "./app/pages/admin/AdminEditProduct";
+import { AdminOrderDetail } from "./app/pages/admin/AdminOrderDetail";
+import AdminBanner from "./app/pages/admin/AdminBanner";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -97,7 +99,9 @@ function AppRoutes() {
           <Route path="add/product" element={<AdminAddProduct />} />
           <Route path="edit/product/:id" element={<AdminEditProduct />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="orders/:orderId" element={<AdminOrderDetail />} />
           <Route path="offers" element={<AdminOffers />} />
+          <Route path="banner" element={<AdminBanner />} />
         </Route>
 
         {/* 404  */}

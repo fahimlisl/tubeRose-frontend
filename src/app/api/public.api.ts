@@ -40,3 +40,7 @@ export const publicShippingApi = {
   checkServiceability: (pincode: string) =>
     request(`/public/check/serviceability?pincode=${pincode}`),
 };
+
+export const publicBannerApi = {
+  getActive: () => request("/public/banner/fetch/active"),
+};

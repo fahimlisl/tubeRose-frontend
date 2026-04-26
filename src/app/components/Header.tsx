@@ -1,21 +1,48 @@
+import React from 'react';
 import { ShoppingBag, Search, User, Menu, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useCart } from '../hooks/useCart';
+import { publicBannerApi } from '../api/public.api.ts';
+
+interface IBanner {
+  _id: string;
+  message: string;
+  bgColor: string;
+  priority: number;
+}
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function Header() {
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { totalItems } = useCart();
+  const [banners, setBanners] = useState<IBanner[]>([]);
+const [bannerIndex, setBannerIndex] = useState(0);
+
+useEffect(() => {
+  publicBannerApi.getActive()
+    .then((res) => {
+      const list = res?.data;
+      if (Array.isArray(list) && list.length > 0) setBanners(list);
+    })
+    .catch(() => {}); 
+}, []);
+useEffect(() => {
+  if (banners.length <= 1) return;
+  const interval = setInterval(() => {
+    setBannerIndex((i) => (i + 1) % banners.length);
+  }, 4000);
+  return () => clearInterval(interval);
+}, [banners]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,9 +58,25 @@ export function Header() {
 
   return (
     <>
-      <div className="bg-neutral-900 text-white text-xs py-2 text-center tracking-wide font-medium relative z-50">
-        Free shipping on all orders over ₹499
-      </div>
+      {banners.length > 0 && (
+      <div
+        className="text-white text-xs py-2 text-center tracking-wide font-medium relative z-50 transition-colors duration-500"
+        style={{ backgroundColor: banners[bannerIndex]?.bgColor || '#171717' }}
+        >
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={banners[bannerIndex]?._id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.3 }}
+              className="inline-block"
+            >
+              {banners[bannerIndex]?.message}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+      )}
       <header 
         className={cn(
           "sticky top-0 left-0 right-0 z-40 transition-all duration-300",

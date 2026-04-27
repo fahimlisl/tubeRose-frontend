@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Megaphone,
+  Percent,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -30,6 +31,7 @@ export function AdminLayout() {
     { to: "/admin/orders", icon: ShoppingCart, label: "Orders" },
     { to: "/admin/products", icon: PackageSearch, label: "Products" },
     { to: "/admin/offers", icon: Tags, label: "Offers & Promos" },
+    { to: "/admin/coupon", icon: Percent, label: "Coupon" },
     { to: "/admin/banner", icon: Megaphone, label: "Banner" },
   ];
 

@@ -60,3 +60,55 @@ export const adminBannerApi = {
   getAll: () =>
     request("/admin/banner/fetch/all", { authContext: "admin" }),
 };
+ 
+interface CouponPayload {
+  code: string;
+  typeOfCoupon: "flat" | "percentage";
+  value: number;
+  minCartAmount?: number;
+  maxDiscount?: number;
+  expiryDate?: string;
+  isActive?: boolean;
+  category: string;
+  isForFirstTimeUser?: boolean;
+  usageLimit?: number;
+  perUserLimit?: number;
+}
+
+export const adminCouponApi = {
+  add: (payload: CouponPayload) =>
+    request("/admin/coupon/add", {
+      method: "POST",
+      body: payload,
+      authContext: "admin",
+    }),
+
+  edit: (id: string, payload: Partial<CouponPayload>) =>
+    request(`/admin/coupon/edit/${id}`, {
+      method: "PATCH",
+      body: payload,
+      authContext: "admin",
+    }),
+
+  toggle: (id: string) =>
+    request(`/admin/coupon/toggle/${id}`, {
+      method: "PATCH",
+      authContext: "admin",
+    }),
+
+  remove: (id: string) =>
+    request(`/admin/coupon/delete/${id}`, {
+      method: "DELETE",
+      authContext: "admin",
+    }),
+
+  getAll: () =>
+    request("/admin/coupon/all", {
+      authContext: "admin",
+    }),
+
+  getById: (id: string) =>
+    request(`/admin/coupon/${id}`, {
+      authContext: "admin",
+    }),
+};

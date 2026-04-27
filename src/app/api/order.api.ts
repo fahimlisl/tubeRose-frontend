@@ -1,4 +1,4 @@
-import { request } from "./api";
+import { request } from "./api.ts";
 
 export interface IShippingAddressPayload {
   fullName:      string;
@@ -40,17 +40,24 @@ export interface IVerifyPaymentPayload {
   shippingCost:      number;
   totalAmount:       number;
   discount?:         { code: string; amount: number };
+  cartCategories?: string[]
 }
 
 export const orderApi = {
-  // Step 1 — create razorpay order
-  create: (shippingAddress: IShippingAddressPayload) =>
-    request<ICreateOrderResponse>("/order/user/create", {
-      method: "POST",
-      body:   { shippingAddress } as any,
-    }),
+  create: (
+  shippingAddress: IShippingAddressPayload,
+  discount?: { code: string; amount: number },
+  cartCategories?: string[]
+) =>
+  request<ICreateOrderResponse>("/order/user/create", {
+    method: "POST",
+    body: {
+      shippingAddress,
+      ...(discount ? { discount } : {}),
+      ...(cartCategories ? { cartCategories } : {}),
+    },
+  }),
 
-  // Step 2 — verify payment + save order
   verify: (payload: IVerifyPaymentPayload) =>
     request<{ orderId: string }>("/order/user/verify", {
       method: "POST",

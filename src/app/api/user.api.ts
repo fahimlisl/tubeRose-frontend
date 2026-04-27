@@ -117,3 +117,19 @@ export interface TrackingResult {
   etd: string | null;
   activities: TrackingActivity[];
 }
+
+export const userCouponApi = {
+  apply: (data: { code: string; cartAmount: number; cartCategories: string[] }) =>
+    request<CouponResult>("/user/coupon/apply", {
+      method: "POST",
+      body: data,
+      authContext: "user",
+    }),
+};
+export interface CouponResult {
+  code: string;
+  discountAmount: number;
+  finalAmount: number;
+  typeOfCoupon: "flat" | "percentage";
+  message: string;
+}

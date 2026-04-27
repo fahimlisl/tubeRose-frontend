@@ -14,8 +14,8 @@ export interface ApiResponse<T = any> {
   message: string;
   success: boolean;
 }
-
 let isRefreshing = false;
+let refreshPromise: Promise<any> | null = null;
 
 export const request = async <T = any>(
   endpoint: string,
@@ -42,56 +42,50 @@ export const request = async <T = any>(
     }
   }
 
-  try {
-    const res = await fetch(`${BASE_URL}${endpoint}`, config);
+  const res = await fetch(`${BASE_URL}${endpoint}`, config);
 
-    const contentType = res.headers.get("content-type") ?? "";
-    let data: any;
+  const contentType = res.headers.get("content-type") ?? "";
+  let data: any;
 
-    if (contentType.includes("application/json")) {
-      data = await res.json();
-    } else {
-      const text = await res.text();
-      console.error("Non-JSON response:", text);
-      throw new Error(
-        `Expected JSON but got ${contentType || "unknown"} (status ${res.status})`
-      );
-    }
+  if (contentType.includes("application/json")) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    console.error("Non-JSON response:", text);
+    throw new Error(`Expected JSON but got ${contentType || "unknown"} (status ${res.status})`);
+  }
 
-    if (res.status === 401 && retry && !isRefreshing) {
-      isRefreshing = true;
+  if (res.status === 401 && retry) {
+    if (!refreshPromise) {
       const refreshEndpoint =
         authContext === "admin"
           ? `${BASE_URL}/admin/refresh/access-token`
           : `${BASE_URL}/user/refresh/access-token`;
 
-      try {
-        const refreshRes = await fetch(refreshEndpoint, {
-          method: "POST",
-          credentials: "include",
-        });
+      refreshPromise = fetch(refreshEndpoint, {
+        method: "POST",
+        credentials: "include",
+      }).finally(() => {
+        refreshPromise = null; 
+      });
+    }
 
-        isRefreshing = false;
-
-        if (!refreshRes.ok) throw new Error("Refresh failed");
-
-        return request(endpoint, options, false); 
-      } catch {
-        isRefreshing = false;
-        window.location.href =
-          authContext === "admin" ? "/auth/admin" : "/auth";
-
-        throw new Error("Session expired, please login again.");
+    try {
+      const refreshRes = await refreshPromise;
+      if (!refreshRes.ok) throw new Error("Refresh failed");
+      return request(endpoint, options, false); // ✅ retry original
+    } catch {
+      const alreadyOnAuth = window.location.pathname.includes("/auth");
+      if (!alreadyOnAuth) {
+        window.location.href = authContext === "admin" ? "/auth/admin" : "/auth";
       }
+      throw new Error("Session expired, please login again.");
     }
-
-    if (!res.ok) {
-      throw new Error(data?.message ?? `HTTP ${res.status}: ${res.statusText}`);
-    }
-
-    return data;
-  } catch (error) {
-    console.error(`API Error [${method} ${endpoint}]:`, error);
-    throw error;
   }
+
+  if (!res.ok) {
+    throw new Error(data?.message ?? `HTTP ${res.status}: ${res.statusText}`);
+  }
+
+  return data;
 };

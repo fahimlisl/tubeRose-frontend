@@ -330,7 +330,7 @@ export function AccountPage() {
                                   ₹{order.totalAmount.toLocaleString('en-IN')}
                                 </p>
                                 <button
-                                  onClick={() => navigate(`/order/${order._id}`)}
+                                  onClick={() => navigate(`/order/complete/${order._id}`)}
                                   className="text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors inline-flex items-center gap-1 mt-1"
                                 >
                                   View Details <ExternalLink size={12} />

@@ -1,7 +1,5 @@
 import { request } from "./api.ts";
 
-// ── User Auth ─────────────────────────────────────────────────────────────────
-// prefix: /api/v1/user
 export const userAuthApi = {
   login: (data: { identifier: string; password: string }) => {
     const isPhone = /^\d{10}$/.test(data.identifier.trim());
@@ -26,10 +24,9 @@ export const userAuthApi = {
     }),
 };
 
-// ── User Profile ──────────────────────────────────────────────────────────────
 export const userProfileApi = {
   get: () =>
-    request("/user/get/profile", {        // ← was /user/profile
+    request("/user/get/profile", {      
       authContext: "user",
     }),
 
@@ -41,14 +38,13 @@ export const userProfileApi = {
     }),
 
   addAddress: (address: Record<string, any>) =>
-    request("/user/address/add", {        // add this route on backend
+    request("/user/address/add", {    
       method: "POST",
       body: address,
       authContext: "user",
     }),
 };
 
-// ── User Cart ─────────────────────────────────────────────────────────────────
 export const userCartApi = {
   get: () =>
     request("/user/cart", {
@@ -90,8 +86,6 @@ export const userCartApi = {
     }),
 };
 
-// ── User Orders ───────────────────────────────────────────────────────────────
-// prefix: /api/v1/order
 export const userOrderApi = {
   getAll: () =>
     request("/order/user/all", {
@@ -103,3 +97,23 @@ export const userOrderApi = {
       authContext: "user",
     }),
 };
+
+export const userOrderTrackingApi = {
+  trackByAwb: (awb: string) =>
+    request(`/user/order/track/${awb}`),
+};
+
+export interface TrackingActivity {
+  date: string;
+  activity: string;
+  location: string;
+  status: string;
+}
+ 
+export interface TrackingResult {
+  awb: string;
+  currentStatus: string;
+  currentLocation: string;
+  etd: string | null;
+  activities: TrackingActivity[];
+}

@@ -30,6 +30,7 @@ import { OrderSuccessPage } from "./app/pages/OrderSuccessPage";
 import { AdminEditProduct } from "./app/pages/admin/AdminEditProduct";
 import { AdminOrderDetail } from "./app/pages/admin/AdminOrderDetail";
 import AdminBanner from "./app/pages/admin/AdminBanner";
+import { OrderDetailPage } from "./app/pages/OrderDetailPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -79,6 +80,7 @@ function AppRoutes() {
           {/* need to change to user section for more secure */}
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order/:orderId" element={<OrderSuccessPage />} />
+          <Route path="/order/complete/:orderId" element={<OrderDetailPage />} />
           {/* <Route path="/orders" element={<OrdersPage />} /> // for order history later */}
         </Route>
 

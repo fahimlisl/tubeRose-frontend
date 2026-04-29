@@ -6,7 +6,8 @@ import {
   Package, MapPin, User as UserIcon, LogOut,
   ChevronRight, Wallet, ExternalLink, Loader2,
   CheckCircle2, Clock, Truck, XCircle, Plus, X,
-  TrendingUp, TrendingDown, Gift, ShoppingBag, RefreshCcw, Star
+  TrendingUp, TrendingDown, Gift, ShoppingBag, RefreshCcw, Star,
+  Sparkles
 } from 'lucide-react';
 import { userProfileApi, userOrderApi } from '../api/user.api';
 import { toast } from 'sonner';
@@ -75,6 +76,7 @@ const emptyAddress = () => ({
 const sourceConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   referral:      { label: 'Referral Bonus',  icon: <Gift size={16} />,        color: 'bg-purple-50 text-purple-600' },
   order_payment: { label: 'Order Payment',   icon: <ShoppingBag size={16} />, color: 'bg-blue-50 text-blue-600'    },
+   cashback:     { label: 'Cashback',       icon: <Sparkles size={16} />,    color: 'bg-amber-50 text-amber-600'    },
   refund:        { label: 'Refund',          icon: <RefreshCcw size={16} />,  color: 'bg-green-50 text-green-600'  },
   admin_credit:  { label: 'Store Credit',    icon: <Star size={16} />,        color: 'bg-yellow-50 text-yellow-600'},
 };

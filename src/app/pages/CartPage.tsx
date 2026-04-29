@@ -1,5 +1,5 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -12,9 +12,13 @@ import {
   X,
   Loader2,
   CheckCircle2,
+  Wallet,
+  AlertCircle,
 } from "lucide-react";
 import { useCart } from "../hooks/useCart.tsx";
+import { useAuth } from "../hooks/useAuth.tsx";
 import { userCouponApi } from "../api/user.api.ts";
+import { userProfileApi } from "../api/user.api.ts";
 import type { CouponResult } from "../api/user.api.ts";
 
 const getThumbnailUrl = (
@@ -30,17 +34,76 @@ const getThumbnailUrl = (
 export function CartPage() {
   const navigate = useNavigate();
   const { items, removeFromCart, updateQuantity, subtotal } = useCart();
+  const { user } = useAuth();
 
   const [couponCode, setCouponCode] = useState("");
   const [couponResult, setCouponResult] = useState<CouponResult | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [useRewards, setUseRewards] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [walletSettings, setWalletSettings] = useState<any>(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   const shippingThreshold = 499;
   const shippingCost = subtotal >= shippingThreshold ? 0 : 99;
   const discountAmount = couponResult?.discountAmount ?? 0;
-  const total = subtotal + shippingCost - discountAmount;
+
+  // Calculate max wallet usage allowed
+  const amountAfterDiscount = subtotal + shippingCost - discountAmount;
+  let maxWalletUsage = 0;
+  if (walletSettings?.walletSpendingEnabled && walletBalance > 0) {
+    const maxByPercent = Math.floor(
+      (amountAfterDiscount * walletSettings.walletSpendingMaxPercent) / 100,
+    );
+    const maxByFixedCap = walletSettings.walletSpendingMaxFixedCap || 0;
+    maxWalletUsage = Math.min(
+      walletBalance,
+      maxByPercent,
+      maxByFixedCap,
+      amountAfterDiscount,
+    );
+  }
+
+  const walletDeduction = useRewards ? maxWalletUsage : 0;
+  const total = amountAfterDiscount - walletDeduction;
   const progress = Math.min((subtotal / shippingThreshold) * 100, 100);
+
+  // Load wallet balance when user changes
+  React.useEffect(() => {
+    if (!user) {
+      setWalletBalance(0);
+      setUseRewards(false);
+      return;
+    }
+    setProfileLoading(true);
+    userProfileApi
+      .get()
+      .then((res) => {
+        const wallet = res?.data?.wallet ?? [];
+        const credits = wallet
+          .filter((w: any) => w.type === "credit")
+          .reduce((s: number, w: any) => s + w.amount, 0);
+        const debits = wallet
+          .filter((w: any) => w.type === "debit")
+          .reduce((s: number, w: any) => s + w.amount, 0);
+        const balance = Math.max(0, credits - debits);
+        setWalletBalance(balance);
+      })
+      .catch(() => setWalletBalance(0))
+      .finally(() => setProfileLoading(false));
+  }, [user]);
+
+  // Load wallet settings
+  useEffect(() => {
+    setSettingsLoading(true);
+    userProfileApi
+      .getWalletSettings()
+      .then((res: any) => setWalletSettings(res?.data))
+      .catch(() => setWalletSettings({ walletSpendingEnabled: false }))
+      .finally(() => setSettingsLoading(false));
+  }, []);
 
   const cartCategories = [
     ...new Set(items.map((item) => item.product.category)),
@@ -85,6 +148,7 @@ export function CartPage() {
               amount: couponResult.discountAmount.toString(),
             }
           : undefined,
+        walletUsage: useRewards ? { deduction: walletDeduction } : undefined,
       },
     });
   };
@@ -358,6 +422,48 @@ export function CartPage() {
                       {shippingCost === 0 ? "Free" : `₹${shippingCost}`}
                     </span>
                   </div>
+                  {user && walletBalance > 0 && (
+                    <motion.label
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded hover:bg-neutral-50 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={useRewards}
+                        onChange={(e) => setUseRewards(e.target.checked)}
+                        disabled={
+                          !walletSettings?.walletSpendingEnabled ||
+                          maxWalletUsage <= 0
+                        }
+                        className="w-4 h-4 rounded border-neutral-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <Wallet size={14} className="text-amber-600" />
+                      <div className="flex-1">
+                        <span className="text-xs font-medium text-neutral-600">
+                          Use rewards
+                        </span>
+                        <span className="text-xs text-neutral-500 ml-1">
+                          (Use up to ₹{maxWalletUsage.toLocaleString("en-IN")}{" "}
+                          of ₹{walletBalance.toLocaleString("en-IN")})
+                        </span>
+                      </div>
+                    </motion.label>
+                  )}
+                  {walletSettings?.walletSpendingEnabled === false &&
+                    walletBalance > 0 &&
+                    user && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700"
+                      >
+                        <AlertCircle size={14} className="shrink-0" />
+                        <span>Wallet spending is currently disabled</span>
+                      </motion.div>
+                    )}
                   <AnimatePresence>
                     {discountAmount > 0 && (
                       <motion.div
@@ -371,6 +477,19 @@ export function CartPage() {
                         </span>
                         <span className="text-green-600 font-medium">
                           −₹{discountAmount.toLocaleString("en-IN")}
+                        </span>
+                      </motion.div>
+                    )}
+                    {walletDeduction > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex justify-between"
+                      >
+                        <span className="text-amber-600">Rewards Used</span>
+                        <span className="text-amber-600 font-medium">
+                          −₹{walletDeduction.toLocaleString("en-IN")}
                         </span>
                       </motion.div>
                     )}

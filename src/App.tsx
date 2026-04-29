@@ -32,6 +32,7 @@ import { AdminOrderDetail } from "./app/pages/admin/AdminOrderDetail";
 import AdminBanner from "./app/pages/admin/AdminBanner";
 import { OrderDetailPage } from "./app/pages/OrderDetailPage";
 import AdminCoupon from "./app/pages/admin/AdminCoupon";
+import { AdminWalletSettings } from "./app/pages/admin/AdminWalletSettings";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -106,6 +107,11 @@ function AppRoutes() {
           <Route path="offers" element={<AdminOffers />} />
           <Route path="banner" element={<AdminBanner />} />
           <Route path="coupon" element={<AdminCoupon />} />
+          <Route path="/admin/settings">
+          <Route path="wallet" element={<AdminWalletSettings />} />
+          {/* <Route path="general" element={<GeneralSettings />} /> */}
+          {/* <Route path="security" element={<SecuritySettings />} /> */}
+          </Route>
         </Route>
 
         {/* 404  */}

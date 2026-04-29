@@ -26,7 +26,7 @@ export const userAuthApi = {
 
 export const userProfileApi = {
   get: () =>
-    request("/user/get/profile", {      
+    request("/user/get/profile", {
       authContext: "user",
     }),
 
@@ -38,9 +38,14 @@ export const userProfileApi = {
     }),
 
   addAddress: (address: Record<string, any>) =>
-    request("/user/address/add", {    
+    request("/user/address/add", {
       method: "POST",
       body: address,
+      authContext: "user",
+    }),
+
+  getWalletSettings: () =>
+    request("/user/wallet-settings", {
       authContext: "user",
     }),
 };
@@ -72,7 +77,9 @@ export const userCartApi = {
       authContext: "user",
     }),
 
-  merge: (anonymousCart: { productId: string; quantity: number; sizeLabel: string }[]) =>
+  merge: (
+    anonymousCart: { productId: string; quantity: number; sizeLabel: string }[],
+  ) =>
     request("/user/cart/merge", {
       method: "POST",
       body: { anonymousCart },
@@ -99,8 +106,7 @@ export const userOrderApi = {
 };
 
 export const userOrderTrackingApi = {
-  trackByAwb: (awb: string) =>
-    request(`/user/order/track/${awb}`),
+  trackByAwb: (awb: string) => request(`/user/order/track/${awb}`),
 };
 
 export interface TrackingActivity {
@@ -109,7 +115,7 @@ export interface TrackingActivity {
   location: string;
   status: string;
 }
- 
+
 export interface TrackingResult {
   awb: string;
   currentStatus: string;
@@ -119,7 +125,11 @@ export interface TrackingResult {
 }
 
 export const userCouponApi = {
-  apply: (data: { code: string; cartAmount: number; cartCategories: string[] }) =>
+  apply: (data: {
+    code: string;
+    cartAmount: number;
+    cartCategories: string[];
+  }) =>
     request<CouponResult>("/user/coupon/apply", {
       method: "POST",
       body: data,
@@ -133,3 +143,8 @@ export interface CouponResult {
   typeOfCoupon: "flat" | "percentage";
   message: string;
 }
+
+// user.api.ts
+export const userWalletApi = {
+  getSettings: () => request("/user/wallet-settings", { authContext: "user" }),
+};

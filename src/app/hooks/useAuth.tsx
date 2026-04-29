@@ -34,6 +34,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   authStep: AuthStep;
+  isNewRegistration: boolean;
   setAuthStep: (step: AuthStep) => void;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -54,22 +55,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const mergeAnonymousCart = async () => {
   try {
     const saved = localStorage.getItem(ANON_CART_KEY);
-    if (!saved) {
-      return;
-    }
-
+    if (!saved) return;
     const localItems: CartItem[] = JSON.parse(saved);
-    if (!localItems.length) {
-      return;
-    }
+    if (!localItems.length) return;
     const anonymousCart = localItems.map((item) => ({
       productId: item.product._id,
       sizeLabel: item.sizeLabel,
       quantity: item.quantity,
     }));
-
     await userCartApi.merge(anonymousCart);
-    localStorage.removeItem(ANON_CART_KEY); 
+    localStorage.removeItem(ANON_CART_KEY);
   } catch (err) {
     console.error("⚠️  Merge failed (silent continue):", err);
   }
@@ -79,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authStep, setAuthStep] = useState<AuthStep>("idle");
+  const [isNewRegistration, setIsNewRegistration] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -109,13 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = res.data?.user;
       if (!userData) throw new Error("Invalid response from server.");
       setUser(userData);
-      localStorage.setItem("user_auth", JSON.stringify(userData)); 
-
-      await mergeAnonymousCart(); 
+      setIsNewRegistration(false);
+      localStorage.setItem("user_auth", JSON.stringify(userData));
+      await mergeAnonymousCart();
       toast.success("Welcome back!");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed.";
-      console.error("❌ Login error:", message);
       toast.error(message);
       throw err;
     } finally {
@@ -132,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setAuthStep("idle");
+      setIsNewRegistration(false);
       localStorage.removeItem("user_auth");
       localStorage.removeItem(ANON_CART_KEY);
       setIsLoading(false);
@@ -191,11 +187,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const res = await publicAuthApi.register(data);
-      const userData = res.data?.user; 
+      const userData = res.data?.user;
       if (!userData) throw new Error("Registration failed.");
-
       setUser(userData);
-      await mergeAnonymousCart(); 
+      setIsNewRegistration(true);
+      localStorage.setItem("user_auth", JSON.stringify(userData));
+      await mergeAnonymousCart();
       toast.success("Account created successfully!");
       setAuthStep("referral");
     } catch (err: unknown) {
@@ -213,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await publicAuthApi.applyReferralCode(code);
       toast.success("Referral code applied! ₹200 added to your wallet.");
+      setIsNewRegistration(false);
       setAuthStep("done");
     } catch (err: unknown) {
       const message =
@@ -225,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const skipReferral = () => {
+    setIsNewRegistration(false);
     setAuthStep("done");
     toast.success("Welcome aboard!");
   };
@@ -235,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         authStep,
+        isNewRegistration,
         setAuthStep,
         login,
         logout,

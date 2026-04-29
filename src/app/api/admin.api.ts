@@ -112,3 +112,21 @@ export const adminCouponApi = {
       authContext: "admin",
     }),
 };
+
+interface WalletSettingsPayload {
+  walletCashbackEnabled?: boolean;
+  walletCashbackPercent?: number;
+  walletSpendingEnabled?: boolean;
+  walletSpendingMaxPercent?: number;
+  walletSpendingMaxFixedCap?: number;
+  referralBonusEnabled?: boolean;
+  referralBonusAmount?: number;
+}
+ 
+export const adminWalletSettingsApi = {
+  get: () =>
+    request("/admin/settings", { authContext: "admin" }),
+  update: (payload: WalletSettingsPayload) =>
+    request("/admin/settings", { method: "PUT", body: payload, authContext: "admin" }),
+};
+ 

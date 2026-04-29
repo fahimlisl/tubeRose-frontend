@@ -44,3 +44,13 @@ export const publicShippingApi = {
 export const publicBannerApi = {
   getActive: () => request("/public/banner/fetch/active"),
 };
+
+export const publicForgotPasswordApi = {
+  sendOtp: (data: { email?: string; phoneNumber?: string }) =>
+    request("/public/user/forgot-password/send-otp", { method: "POST", body: data }),
+  // need to write route and controller for resending 
+  resetPassword: (data: { otp: string; newPassword: string; confirmNewPassword: string }) =>
+    request("/public/user/forgot-password/verify-otp", { method: "POST", body: data }),
+   verifyOtp: (data: { otp: string; newPassword: string; confirmNewPassword: string }) =>
+    request("/public/user/forgot-password/verify-otp", { method: "POST", body: data }),
+};

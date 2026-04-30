@@ -20,6 +20,7 @@ import { useAuth } from "../hooks/useAuth.tsx";
 import { userCouponApi } from "../api/user.api.ts";
 import { userProfileApi } from "../api/user.api.ts";
 import type { CouponResult } from "../api/user.api.ts";
+import { publicShippingInfoApi } from "../api/public.api.ts";
 
 const getThumbnailUrl = (
   images: { url: string; isThumbnail: boolean }[],
@@ -45,12 +46,22 @@ export function CartPage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [walletSettings, setWalletSettings] = useState<any>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [shippingConfig, setShippingConfig] = useState<{
+    freeShippingEnabled:   boolean;
+    freeShippingThreshold: number;
+    defaultShippingCost:   number;
+  } | null>(null);
 
-  const shippingThreshold = 499;
-  const shippingCost = subtotal >= shippingThreshold ? 0 : 99;
+  const shippingThreshold = shippingConfig?.freeShippingThreshold ?? 499;
+  const shippingCost = shippingConfig
+      ? shippingConfig.freeShippingEnabled
+        ? 0
+        : subtotal >= shippingThreshold
+          ? 0
+          : shippingConfig.defaultShippingCost
+      : subtotal >= 499 ? 0 : 99; 
   const discountAmount = couponResult?.discountAmount ?? 0;
 
-  // Calculate max wallet usage allowed
   const amountAfterDiscount = subtotal + shippingCost - discountAmount;
   let maxWalletUsage = 0;
   if (walletSettings?.walletSpendingEnabled && walletBalance > 0) {
@@ -70,39 +81,44 @@ export function CartPage() {
   const total = amountAfterDiscount - walletDeduction;
   const progress = Math.min((subtotal / shippingThreshold) * 100, 100);
 
-  // Load wallet balance when user changes
   React.useEffect(() => {
-    if (!user) {
-      setWalletBalance(0);
-      setUseRewards(false);
-      return;
-    }
-    setProfileLoading(true);
-    userProfileApi
-      .get()
-      .then((res) => {
-        const wallet = res?.data?.wallet ?? [];
-        const credits = wallet
-          .filter((w: any) => w.type === "credit")
-          .reduce((s: number, w: any) => s + w.amount, 0);
-        const debits = wallet
-          .filter((w: any) => w.type === "debit")
-          .reduce((s: number, w: any) => s + w.amount, 0);
-        const balance = Math.max(0, credits - debits);
-        setWalletBalance(balance);
-      })
-      .catch(() => setWalletBalance(0))
-      .finally(() => setProfileLoading(false));
-  }, [user]);
+  if (!user) {
+    setWalletBalance(0);
+    setUseRewards(false);
+    return;
+  }
+  setProfileLoading(true);
+  userProfileApi.get()
+    .then((res) => {
+      const wallet = res?.data?.wallet ?? [];
+      const credits = wallet.filter((w: any) => w.type === "credit").reduce((s: number, w: any) => s + w.amount, 0);
+      const debits  = wallet.filter((w: any) => w.type === "debit").reduce((s: number, w: any) => s + w.amount, 0);
+      setWalletBalance(Math.max(0, credits - debits));
+    })
+    .catch(() => setWalletBalance(0))
+    .finally(() => setProfileLoading(false));
+}, [user]);
 
-  // Load wallet settings
   useEffect(() => {
-    setSettingsLoading(true);
-    userProfileApi
-      .getWalletSettings()
-      .then((res: any) => setWalletSettings(res?.data))
-      .catch(() => setWalletSettings({ walletSpendingEnabled: false }))
-      .finally(() => setSettingsLoading(false));
+  if (!user) {
+    setWalletSettings({ walletSpendingEnabled: false });
+    return;
+  }
+  setSettingsLoading(true);
+  userProfileApi.getWalletSettings()
+    .then((res: any) => setWalletSettings(res?.data))
+    .catch(() => setWalletSettings({ walletSpendingEnabled: false }))
+    .finally(() => setSettingsLoading(false));
+}, [user]);
+
+  useEffect(() => {
+    publicShippingInfoApi.get()
+      .then(res => setShippingConfig(res?.data))
+      .catch(() => setShippingConfig({
+        freeShippingEnabled:   false,
+        freeShippingThreshold: 499,
+        defaultShippingCost:   99,
+      }));
   }, []);
 
   const cartCategories = [
@@ -149,6 +165,7 @@ export function CartPage() {
             }
           : undefined,
         walletUsage: useRewards ? { deduction: walletDeduction } : undefined,
+        shippingCost,
       },
     });
   };

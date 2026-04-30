@@ -54,3 +54,7 @@ export const publicForgotPasswordApi = {
    verifyOtp: (data: { otp: string; newPassword: string; confirmNewPassword: string }) =>
     request("/public/user/forgot-password/verify-otp", { method: "POST", body: data }),
 };
+export const publicShippingInfoApi = {
+  get: () => request("/public/shipping/info"),
+};
+ 

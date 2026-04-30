@@ -63,7 +63,9 @@ export function CheckoutPage() {
   const walletUsage = (location.state as LocationState)?.walletUsage ?? null;
   const walletDeduction = walletUsage?.deduction ?? 0;
 
-  const shippingCost = subtotal >= 499 ? 0 : 99;
+  // const shippingCost = subtotal >= 499 ? 0 : 99;
+      const shippingCost = (location.state as any)?.shippingCost
+      ?? (subtotal >= 499 ? 0 : 99); // safe fallback if navigated directly
   const total = subtotal + shippingCost - discountAmount - walletDeduction;
 
   const [profile, setProfile] = useState<any>(null);

@@ -130,3 +130,33 @@ export const adminWalletSettingsApi = {
     request("/admin/settings", { method: "PUT", body: payload, authContext: "admin" }),
 };
  
+export const adminShippingApi = {
+  getSettings: () =>
+    request("/admin/shipping/settings", { authContext: "admin" }),
+ 
+  updateSettings: (payload: {
+    freeShippingEnabled?:   boolean;
+    freeShippingThreshold?: number;
+    defaultShippingCost?:   number;
+  }) =>
+    request("/admin/shipping/settings", {
+      method:      "PATCH",
+      body:        payload,
+      authContext: "admin",
+    }),
+};
+
+interface ChangePasswordPayload {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export const adminAuthSettings = {
+  changePassword: (payload: ChangePasswordPayload) =>
+    request("/admin/change/password", {
+      method: "POST",
+      body: payload,
+      authContext: "admin",
+    }),
+};

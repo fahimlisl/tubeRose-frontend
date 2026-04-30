@@ -23,7 +23,6 @@ import { AdminLogin } from "./app/pages/AdminLogin";
 import { AdminDashboard } from "./app/pages/admin/AdminDashboard";
 import { AdminProducts } from "./app/pages/admin/AdminProducts";
 import { AdminOrders } from "./app/pages/admin/AdminOrders";
-import { AdminOffers } from "./app/pages/admin/AdminOffers";
 import { AdminAddProduct } from "./app/pages/admin/AdminAddProduct";
 import { CheckoutPage } from "./app/pages/CheckoutPage";
 import { OrderSuccessPage } from "./app/pages/OrderSuccessPage";
@@ -33,6 +32,8 @@ import AdminBanner from "./app/pages/admin/AdminBanner";
 import { OrderDetailPage } from "./app/pages/OrderDetailPage";
 import AdminCoupon from "./app/pages/admin/AdminCoupon";
 import { AdminWalletSettings } from "./app/pages/admin/AdminWalletSettings";
+import AdminShipping from "./app/pages/admin/AdminShipping";
+import { ChangePassword } from "./app/pages/admin/ChangePassword";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -104,13 +105,12 @@ function AppRoutes() {
           <Route path="edit/product/:id" element={<AdminEditProduct />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="orders/:orderId" element={<AdminOrderDetail />} />
-          <Route path="offers" element={<AdminOffers />} />
           <Route path="banner" element={<AdminBanner />} />
           <Route path="coupon" element={<AdminCoupon />} />
           <Route path="/admin/settings">
-          <Route path="wallet" element={<AdminWalletSettings />} />
-          {/* <Route path="general" element={<GeneralSettings />} /> */}
-          {/* <Route path="security" element={<SecuritySettings />} /> */}
+            <Route path="wallet" element={<AdminWalletSettings />} />
+            <Route path="shipping" element={<AdminShipping />} />
+            <Route path="change-password" element={<ChangePassword />} />
           </Route>
         </Route>
 

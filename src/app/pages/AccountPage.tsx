@@ -7,65 +7,39 @@ import {
   ChevronRight, Wallet, ExternalLink, Loader2,
   CheckCircle2, Clock, Truck, XCircle, Plus, X,
   TrendingUp, TrendingDown, Gift, ShoppingBag, RefreshCcw, Star,
-  Sparkles
+  Sparkles, ShieldCheck, Eye, EyeOff, Lock,
 } from 'lucide-react';
-import { userProfileApi, userOrderApi } from '../api/user.api';
+import { userProfileApi, userOrderApi, userAuthSettings } from '../api/user.api';
 import { toast } from 'sonner';
 
 interface OrderItem {
-  name: string;
-  sizeLabel: string;
-  price: number;
-  quantity: number;
-  image: string;
+  name: string; sizeLabel: string; price: number;
+  quantity: number; image: string;
 }
-
 interface Order {
-  _id: string;
-  items: OrderItem[];
+  _id: string; items: OrderItem[];
   orderStatus: 'placed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentStatus: 'pending' | 'paid' | 'failed';
-  totalAmount: number;
-  baseAmount: number;
-  createdAt: string;
-  awbCode?: string;
-  shiprocketStatus?: string;
+  totalAmount: number; baseAmount: number;
+  createdAt: string; awbCode?: string; shiprocketStatus?: string;
 }
-
 interface Address {
-  _id?: string;
-  fullName: string;
-  phone: string;
-  houseNo?: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  state: string;
-  pincode: string;
-  isDefault: boolean;
+  _id?: string; fullName: string; phone: string; houseNo?: string;
+  addressLine1: string; addressLine2?: string; city: string;
+  state: string; pincode: string; isDefault: boolean;
 }
-
 interface WalletEntry {
-  _id?: string;
-  amount: number;
+  _id?: string; amount: number;
   source: 'referral' | 'order_payment' | 'refund' | 'admin_credit';
-  type: 'credit' | 'debit';
-  description?: string;
-  createdAt: string;
+  type: 'credit' | 'debit'; description?: string; createdAt: string;
 }
-
 interface FullProfile {
-  _id: string;
-  name: string;
-  email: string;
-  phoneNumber: number;
-  ownReferralCode: string;
-  usedReferralCode?: string;
-  wallet: WalletEntry[];
-  addresses: Address[];
+  _id: string; name: string; email: string; phoneNumber: number;
+  ownReferralCode: string; usedReferralCode?: string;
+  wallet: WalletEntry[]; addresses: Address[];
 }
-
 type TabId = 'orders' | 'profile' | 'addresses' | 'wallet';
+
 
 const emptyAddress = () => ({
   fullName: '', phone: '', houseNo: '',
@@ -73,12 +47,16 @@ const emptyAddress = () => ({
   city: '', state: '', pincode: '',
 });
 
+const emptyPwForm = () => ({
+  oldPassword: '', newPassword: '', confirmNewPassword: '',
+});
+
 const sourceConfig: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  referral:      { label: 'Referral Bonus',  icon: <Gift size={16} />,        color: 'bg-purple-50 text-purple-600' },
-  order_payment: { label: 'Order Payment',   icon: <ShoppingBag size={16} />, color: 'bg-blue-50 text-blue-600'    },
-   cashback:     { label: 'Cashback',       icon: <Sparkles size={16} />,    color: 'bg-amber-50 text-amber-600'    },
-  refund:        { label: 'Refund',          icon: <RefreshCcw size={16} />,  color: 'bg-green-50 text-green-600'  },
-  admin_credit:  { label: 'Store Credit',    icon: <Star size={16} />,        color: 'bg-yellow-50 text-yellow-600'},
+  referral:      { label: 'Referral Bonus', icon: <Gift size={16} />,        color: 'bg-purple-50 text-purple-600' },
+  order_payment: { label: 'Order Payment',  icon: <ShoppingBag size={16} />, color: 'bg-blue-50 text-blue-600'    },
+  cashback:      { label: 'Cashback',       icon: <Sparkles size={16} />,    color: 'bg-amber-50 text-amber-600'  },
+  refund:        { label: 'Refund',         icon: <RefreshCcw size={16} />,  color: 'bg-green-50 text-green-600'  },
+  admin_credit:  { label: 'Store Credit',   icon: <Star size={16} />,        color: 'bg-yellow-50 text-yellow-600'},
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -89,18 +67,141 @@ const StatusBadge = ({ status }: { status: string }) => {
     delivered:  { label: 'Delivered',  className: 'bg-green-50 text-green-700',   icon: <CheckCircle2 size={12} /> },
     cancelled:  { label: 'Cancelled',  className: 'bg-red-50 text-red-700',       icon: <XCircle size={12} /> },
   };
-  const config = map[status] ?? { label: status, className: 'bg-neutral-100 text-neutral-600', icon: null };
+  const cfg = map[status] ?? { label: status, className: 'bg-neutral-100 text-neutral-600', icon: null };
   return (
-    <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${config.className}`}>
-      {config.icon}{config.label}
+    <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${cfg.className}`}>
+      {cfg.icon}{cfg.label}
     </span>
   );
 };
 
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm]       = useState(emptyPwForm());
+  const [show, setShow]       = useState({ oldPassword: false, newPassword: false, confirmNewPassword: false });
+  const [loading, setLoading] = useState(false);
+
+  const toggle = (f: keyof typeof show) => setShow(p => ({ ...p, [f]: !p[f] }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (form.newPassword.length < 8)                          return toast.error('New password must be at least 8 characters.');
+    if (form.newPassword !== form.confirmNewPassword)          return toast.error('Passwords do not match.');
+    if (form.oldPassword === form.newPassword)                 return toast.error('New password cannot be same as current.');
+    try {
+      setLoading(true);
+      await userAuthSettings.changePassword(form);
+      toast.success('Password updated successfully.');
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fields = [
+    { name: 'oldPassword'        as const, label: 'Current Password',      placeholder: 'Enter current password' },
+    { name: 'newPassword'        as const, label: 'New Password',           placeholder: 'Min. 8 characters'      },
+    { name: 'confirmNewPassword' as const, label: 'Confirm New Password',   placeholder: 'Re-enter new password'  },
+  ];
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 16 }}
+          animate={{ opacity: 1, scale: 1,    y: 0  }}
+          exit={{ opacity: 0,   scale: 0.96, y: 16  }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-neutral-900 rounded-xl flex items-center justify-center">
+                <ShieldCheck size={16} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-neutral-900">Change Password</h2>
+                <p className="text-xs text-neutral-400">Update your account password</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-neutral-100 transition-colors text-neutral-400"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {fields.map(({ name, label, placeholder }) => (
+              <div key={name} className="space-y-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-neutral-600">
+                  <Lock size={11} className="text-neutral-400" />{label}
+                </label>
+                <div className="relative">
+                  <input
+                    type={show[name] ? 'text' : 'password'}
+                    name={name}
+                    value={form[name]}
+                    onChange={handleChange}
+                    placeholder={placeholder}
+                    required
+                    className="w-full px-3 py-2.5 pr-10 rounded-xl border border-neutral-200 bg-neutral-50 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggle(name)}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition"
+                  >
+                    {show[name] ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <p className="text-xs text-neutral-400 bg-neutral-50 border border-neutral-100 rounded-xl px-3 py-2.5">
+              ⚡ Must be at least 8 characters and different from your current password.
+            </p>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded-xl border border-neutral-200 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 py-2.5 rounded-xl bg-neutral-900 text-white text-sm font-semibold hover:bg-neutral-700 disabled:bg-neutral-300 transition-colors flex items-center justify-center gap-2"
+              >
+                {loading && <Loader2 size={14} className="animate-spin" />}
+                {loading ? 'Updating…' : 'Update Password'}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export function AccountPage() {
   const { user, logout, isLoading } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
   const [activeTab, setActiveTab]             = useState<TabId>('orders');
   const [profile, setProfile]                 = useState<FullProfile | null>(null);
@@ -109,89 +210,58 @@ export function AccountPage() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [newAddress, setNewAddress]           = useState(emptyAddress());
   const [savingAddress, setSavingAddress]     = useState(false);
+  const [showPwModal, setShowPwModal]         = useState(false);   // 👈 new
 
   useEffect(() => {
     if (!user) return;
-    const fetchProfile = async () => {
+    (async () => {
       setDataLoading(true);
-      try {
-        const res = await userProfileApi.get();
-        setProfile(res.data);
-      } catch (err: any) {
-        toast.error(err?.message ?? 'Failed to load profile.');
-      } finally {
-        setDataLoading(false);
-      }
-    };
-    fetchProfile();
+      try   { const res = await userProfileApi.get(); setProfile(res.data); }
+      catch (err: any) { toast.error(err?.message ?? 'Failed to load profile.'); }
+      finally { setDataLoading(false); }
+    })();
   }, [user]);
 
   useEffect(() => {
     if (!user || activeTab !== 'orders') return;
-    const fetchOrders = async () => {
+    (async () => {
       setDataLoading(true);
-      try {
-        const res = await userOrderApi.getAll();
-        setOrders(res.data ?? []);
-      } catch (err: any) {
-        toast.error(err?.message ?? 'Failed to load orders.');
-      } finally {
-        setDataLoading(false);
-      }
-    };
-    fetchOrders();
+      try   { const res = await userOrderApi.getAll(); setOrders(res.data ?? []); }
+      catch (err: any) { toast.error(err?.message ?? 'Failed to load orders.'); }
+      finally { setDataLoading(false); }
+    })();
   }, [activeTab, user]);
 
   const handleSaveAddress = useCallback(async () => {
     const { fullName, phone, addressLine1, city, state, pincode } = newAddress;
-    if (!fullName || !phone || !addressLine1 || !city || !state || !pincode) {
-      toast.error('Please fill all required fields.');
-      return;
-    }
+    if (!fullName || !phone || !addressLine1 || !city || !state || !pincode)
+      return toast.error('Please fill all required fields.');
     setSavingAddress(true);
     try {
       const res = await userProfileApi.addAddress(newAddress);
-      setProfile(prev =>
-        prev ? { ...prev, addresses: res.data?.addresses ?? prev.addresses } : prev
-      );
+      setProfile(prev => prev ? { ...prev, addresses: res.data?.addresses ?? prev.addresses } : prev);
       setShowAddressForm(false);
       setNewAddress(emptyAddress());
       toast.success('Address saved!');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Failed to save address.');
-    } finally {
-      setSavingAddress(false);
-    }
+    } catch (err: any) { toast.error(err?.message ?? 'Failed to save address.'); }
+    finally { setSavingAddress(false); }
   }, [newAddress]);
 
   const handleLogout = useCallback(async () => {
-    await logout();
-    navigate('/');
+    await logout(); navigate('/');
   }, [logout, navigate]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <Loader2 size={24} className="animate-spin text-neutral-400" />
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+      <Loader2 size={24} className="animate-spin text-neutral-400" />
+    </div>
+  );
 
-  if (!user) {
-    return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
-  }
+  if (!user) return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
 
-  const walletTotal = profile?.wallet?.reduce((acc, w) =>
-    w.type === 'credit' ? acc + w.amount : acc - w.amount, 0
-  ) ?? 0;
-
-  const totalCredited = profile?.wallet
-    ?.filter(w => w.type === 'credit')
-    .reduce((acc, w) => acc + w.amount, 0) ?? 0;
-
-  const totalSpent = profile?.wallet
-    ?.filter(w => w.type === 'debit')
-    .reduce((acc, w) => acc + w.amount, 0) ?? 0;
+  const walletTotal    = profile?.wallet?.reduce((acc, w) => w.type === 'credit' ? acc + w.amount : acc - w.amount, 0) ?? 0;
+  const totalCredited  = profile?.wallet?.filter(w => w.type === 'credit').reduce((acc, w) => acc + w.amount, 0) ?? 0;
+  const totalSpent     = profile?.wallet?.filter(w => w.type === 'debit').reduce((acc, w) => acc + w.amount, 0) ?? 0;
 
   const tabs = [
     { id: 'orders'    as TabId, label: 'Order History',   icon: Package  },
@@ -213,8 +283,9 @@ export function AccountPage() {
 
   return (
     <div className="bg-neutral-50 min-h-screen py-12 md:py-20">
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6">
+      {showPwModal && <ChangePasswordModal onClose={() => setShowPwModal(false)} />}
 
+      <div className="max-w-[1200px] mx-auto px-4 md:px-6">
         <div className="mb-10">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tighter text-neutral-900 mb-2">
             My Account
@@ -225,7 +296,7 @@ export function AccountPage() {
         </div>
 
         <div className="flex flex-col md:flex-row gap-8">
-
+          {/* ── Sidebar ── */}
           <div className="w-full md:w-64 shrink-0 space-y-4">
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-neutral-100">
               <div className="flex items-center gap-4 mb-3">
@@ -247,7 +318,7 @@ export function AccountPage() {
 
             <nav className="space-y-1 bg-white rounded-2xl p-2 shadow-sm border border-neutral-100">
               {tabs.map(tab => {
-                const Icon = tab.icon;
+                const Icon     = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (
                   <button
@@ -257,14 +328,23 @@ export function AccountPage() {
                       isActive ? 'bg-neutral-900 text-white' : 'text-neutral-600 hover:bg-neutral-100'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon size={18} />{tab.label}
-                    </div>
+                    <div className="flex items-center gap-3"><Icon size={18} />{tab.label}</div>
                     {isActive && <ChevronRight size={16} className="opacity-70" />}
                   </button>
                 );
               })}
+
               <div className="h-px bg-neutral-100 my-2 mx-3" />
+
+              <button
+                onClick={() => setShowPwModal(true)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+              >
+                <ShieldCheck size={18} />Change Password
+              </button>
+
+              <div className="h-px bg-neutral-100 my-2 mx-3" />
+
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-sm font-medium text-red-600 hover:bg-red-50"
@@ -316,9 +396,7 @@ export function AccountPage() {
                                   <StatusBadge status={order.orderStatus} />
                                 </div>
                                 <p className="text-xs text-neutral-500">
-                                  {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                                    day: 'numeric', month: 'long', year: 'numeric',
-                                  })}
+                                  {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                                   {' · '}{order.items.length} {order.items.length === 1 ? 'item' : 'items'}
                                 </p>
                                 {order.awbCode && (
@@ -328,9 +406,7 @@ export function AccountPage() {
                                 )}
                               </div>
                               <div className="text-right shrink-0">
-                                <p className="font-semibold text-neutral-900">
-                                  ₹{order.totalAmount.toLocaleString('en-IN')}
-                                </p>
+                                <p className="font-semibold text-neutral-900">₹{order.totalAmount.toLocaleString('en-IN')}</p>
                                 <button
                                   onClick={() => navigate(`/order/complete/${order._id}`)}
                                   className="text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors inline-flex items-center gap-1 mt-1"
@@ -344,8 +420,7 @@ export function AccountPage() {
                                 <div key={i} className="w-12 h-12 bg-neutral-100 rounded-lg overflow-hidden shrink-0">
                                   {item.image
                                     ? <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                    : <Package size={16} className="m-auto mt-3 text-neutral-300" />
-                                  }
+                                    : <Package size={16} className="m-auto mt-3 text-neutral-300" />}
                                 </div>
                               ))}
                               {order.items.length > 4 && (
@@ -376,28 +451,21 @@ export function AccountPage() {
                           { label: 'Referral Code', value: profile.ownReferralCode, mono: true },
                         ].map(({ label, value, mono }) => (
                           <div key={label} className="border-b border-neutral-100 pb-4 last:border-0">
-                            <label className="block text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                              {label}
-                            </label>
-                            <p className={`text-neutral-900 font-medium ${mono ? 'font-mono tracking-widest' : ''}`}>
-                              {value ?? '—'}
-                            </p>
+                            <label className="block text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1">{label}</label>
+                            <p className={`text-neutral-900 font-medium ${mono ? 'font-mono tracking-widest' : ''}`}>{value ?? '—'}</p>
                           </div>
                         ))}
                         {profile.usedReferralCode && (
                           <div className="border-b border-neutral-100 pb-4">
-                            <label className="block text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                              Used Referral Code
-                            </label>
-                            <p className="text-neutral-900 font-mono tracking-widest">
-                              {profile.usedReferralCode}
-                            </p>
+                            <label className="block text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1">Used Referral Code</label>
+                            <p className="text-neutral-900 font-mono tracking-widest">{profile.usedReferralCode}</p>
                           </div>
                         )}
                       </div>
                     )}
                   </div>
                 )}
+
                 {activeTab === 'addresses' && (
                   <div>
                     <div className="flex items-center justify-between mb-6">
@@ -410,7 +478,6 @@ export function AccountPage() {
                         {showAddressForm ? 'Cancel' : 'Add Address'}
                       </button>
                     </div>
-
                     <AnimatePresence>
                       {showAddressForm && (
                         <motion.div
@@ -445,7 +512,6 @@ export function AccountPage() {
                         </motion.div>
                       )}
                     </AnimatePresence>
-
                     {!profile?.addresses?.length ? (
                       <div className="border border-dashed border-neutral-200 rounded-2xl p-10 text-center">
                         <MapPin size={32} className="mx-auto mb-3 text-neutral-300" />
@@ -465,13 +531,10 @@ export function AccountPage() {
                                   )}
                                 </div>
                                 <p className="text-sm text-neutral-500">
-                                  {addr.houseNo ? `${addr.houseNo}, ` : ''}
-                                  {addr.addressLine1}
+                                  {addr.houseNo ? `${addr.houseNo}, ` : ''}{addr.addressLine1}
                                   {addr.addressLine2 ? `, ${addr.addressLine2}` : ''}
                                 </p>
-                                <p className="text-sm text-neutral-500">
-                                  {addr.city}, {addr.state} — {addr.pincode}
-                                </p>
+                                <p className="text-sm text-neutral-500">{addr.city}, {addr.state} — {addr.pincode}</p>
                                 <p className="text-sm text-neutral-400 mt-1">{addr.phone}</p>
                               </div>
                             </div>
@@ -485,69 +548,47 @@ export function AccountPage() {
                   <div>
                     <h2 className="text-xl font-semibold mb-6">Wallet</h2>
                     <div className="bg-neutral-900 text-white rounded-2xl p-6 mb-6">
-                      <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1">
-                        Available Balance
-                      </p>
-                      <p className="text-5xl font-semibold tracking-tight">
-                        ₹{walletTotal.toLocaleString('en-IN')}
-                      </p>
-                      <p className="text-xs text-neutral-500 mt-2 mb-5">
-                        Use at checkout to save on your next order
-                      </p>
-
+                      <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-1">Available Balance</p>
+                      <p className="text-5xl font-semibold tracking-tight">₹{walletTotal.toLocaleString('en-IN')}</p>
+                      <p className="text-xs text-neutral-500 mt-2 mb-5">Use at checkout to save on your next order</p>
                       <div className="grid grid-cols-2 gap-3 pt-4 border-t border-neutral-800">
                         <div className="bg-neutral-800 rounded-xl px-4 py-3">
                           <div className="flex items-center gap-1.5 mb-1">
                             <TrendingUp size={13} className="text-green-400" />
                             <p className="text-xs text-neutral-400">Total Credited</p>
                           </div>
-                          <p className="text-base font-semibold text-green-400">
-                            +₹{totalCredited.toLocaleString('en-IN')}
-                          </p>
+                          <p className="text-base font-semibold text-green-400">+₹{totalCredited.toLocaleString('en-IN')}</p>
                         </div>
                         <div className="bg-neutral-800 rounded-xl px-4 py-3">
                           <div className="flex items-center gap-1.5 mb-1">
                             <TrendingDown size={13} className="text-red-400" />
                             <p className="text-xs text-neutral-400">Total Spent</p>
                           </div>
-                          <p className="text-base font-semibold text-red-400">
-                            −₹{totalSpent.toLocaleString('en-IN')}
-                          </p>
+                          <p className="text-base font-semibold text-red-400">−₹{totalSpent.toLocaleString('en-IN')}</p>
                         </div>
                       </div>
                     </div>
-
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-semibold text-neutral-900">
-                        Transaction History
-                      </h3>
+                      <h3 className="text-sm font-semibold text-neutral-900">Transaction History</h3>
                       {profile?.wallet?.length ? (
                         <span className="text-xs text-neutral-400">
                           {profile.wallet.length} transaction{profile.wallet.length !== 1 ? 's' : ''}
                         </span>
                       ) : null}
                     </div>
-
                     {!profile?.wallet?.length ? (
                       <div className="border border-dashed border-neutral-200 rounded-2xl p-10 text-center">
                         <Wallet size={32} className="mx-auto mb-3 text-neutral-300" />
                         <p className="font-medium text-neutral-900 mb-1">No transactions yet</p>
-                        <p className="text-sm text-neutral-500">
-                          Earn wallet credits by referring friends or receiving refunds
-                        </p>
+                        <p className="text-sm text-neutral-500">Earn wallet credits by referring friends or receiving refunds</p>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         {[...profile.wallet]
                           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                           .map((entry, i) => {
-                            const isCredit   = entry.type === 'credit';
-                            const src        = sourceConfig[entry.source] ?? {
-                              label: entry.source,
-                              icon:  <Wallet size={16} />,
-                              color: 'bg-neutral-100 text-neutral-600',
-                            };
-
+                            const isCredit = entry.type === 'credit';
+                            const src = sourceConfig[entry.source] ?? { label: entry.source, icon: <Wallet size={16} />, color: 'bg-neutral-100 text-neutral-600' };
                             return (
                               <motion.div
                                 key={entry._id ?? i}
@@ -561,35 +602,21 @@ export function AccountPage() {
                                     {src.icon}
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-neutral-900">
-                                      {src.label}
-                                    </p>
+                                    <p className="text-sm font-medium text-neutral-900">{src.label}</p>
                                     {entry.description && (
-                                      <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">
-                                        {entry.description}
-                                      </p>
+                                      <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">{entry.description}</p>
                                     )}
                                     <p className="text-xs text-neutral-400 mt-0.5">
-                                      {new Date(entry.createdAt).toLocaleDateString('en-IN', {
-                                        day: 'numeric', month: 'short', year: 'numeric',
-                                      })}
+                                      {new Date(entry.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                     </p>
                                   </div>
                                 </div>
-
                                 <div className="text-right shrink-0">
                                   <span className={`text-sm font-semibold ${isCredit ? 'text-green-600' : 'text-red-500'}`}>
                                     {isCredit ? '+' : '−'}₹{entry.amount.toLocaleString('en-IN')}
                                   </span>
-                                  <div className={`mt-1 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ml-auto ${
-                                    isCredit
-                                      ? 'bg-green-50 text-green-600'
-                                      : 'bg-red-50 text-red-500'
-                                  }`}>
-                                    {isCredit
-                                      ? <TrendingUp size={10} />
-                                      : <TrendingDown size={10} />
-                                    }
+                                  <div className={`mt-1 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ml-auto ${isCredit ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+                                    {isCredit ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                                     {isCredit ? 'Credit' : 'Debit'}
                                   </div>
                                 </div>
@@ -600,7 +627,6 @@ export function AccountPage() {
                     )}
                   </div>
                 )}
-
               </motion.div>
             </AnimatePresence>
           </div>

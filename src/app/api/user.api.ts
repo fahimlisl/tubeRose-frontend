@@ -148,3 +148,17 @@ export interface CouponResult {
 export const userWalletApi = {
   getSettings: () => request("/user/wallet-settings", { authContext: "user" }),
 };
+
+
+export const userAuthSettings = {
+  changePassword: (payload: {
+    oldPassword: string;
+    newPassword: string;
+    confirmNewPassword: string;
+  }) =>
+    request("/user/change/password", {
+      method: "POST",
+      body: payload,
+      authContext: "user",
+    }),
+};

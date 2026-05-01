@@ -402,7 +402,7 @@ export function AuthPage() {
                           value={identifier}
                           onChange={(e) => setIdentifier(e.target.value)}
                           className="block w-full pl-10 pr-3 py-2.5 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900 transition-colors text-sm"
-                          placeholder="you@example.com or 9876543210"
+                          placeholder="you@example.com or XXXXXXXXXX"
                         />
                       </div>
                     </div>

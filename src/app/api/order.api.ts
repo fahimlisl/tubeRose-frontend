@@ -46,6 +46,11 @@ export interface IVerifyPaymentPayload {
   walletDeduction?: number;
 }
 
+export interface ICancelOrderResponse {
+  razorpayRefundId: string;
+}
+
+
 export const orderApi = {
   create: (
     shippingAddress: IShippingAddressPayload,
@@ -72,4 +77,13 @@ export const orderApi = {
   getAll: () => request("/order/user/all"),
 
   getById: (orderId: string) => request(`/order/user/${orderId}`),
+
+  cancelOrder: (orderId: string) =>
+    request<ICancelOrderResponse>(`/order/user/cancel/${orderId}`, {
+      method: "POST",
+  }),
+  adminCancelOrder: (orderId: string) =>
+    request<{ razorpayRefundId: string }>(`/order/admin/cancel/${orderId}`, {
+      method: "POST",
+    }),
 };

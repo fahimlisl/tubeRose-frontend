@@ -15,10 +15,13 @@ import {
   ChevronUp,
   Copy,
   Check,
+  Trash2,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { userOrderApi, userOrderTrackingApi } from "../api/user.api";
+import { orderApi } from "../api/order.api";
 import type { TrackingResult } from "../api/user.api";
+import { toast } from "sonner";
 
 type OrderStatus =
   | "placed"
@@ -212,8 +215,33 @@ export function OrderDetailPage() {
   const [tracking, setTracking] = useState<TrackingResult | null>(null);
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState<string | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const isDevelopment = import.meta.env.VITE_NODE_ENV === "developement";
+
+  const canCancel =
+    order && !["shipped", "delivered", "cancelled"].includes(order.orderStatus);
+
+  const handleCancel = async () => {
+    if (!orderId || !canCancel) return;
+    setCancelLoading(true);
+    try {
+      await orderApi.cancelOrder(orderId);
+      toast.success(
+        "Order cancelled successfully. Refund will be processed soon.",
+      );
+      // Refresh order
+      const res = await userOrderApi.getById(orderId);
+      setOrder(res?.data ?? null);
+      setShowCancelConfirm(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to cancel order";
+      toast.error(msg);
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -230,45 +258,87 @@ export function OrderDetailPage() {
     };
     load();
   }, [orderId]);
-useEffect(() => {
-  const fetchTracking = async () => {
-    setTrackLoading(true);
-    setTrackError(null);
-    try {
-      if (isDevelopment) {
-        // dev: fake data, no awbCode check needed
-        await userOrderTrackingApi.trackByAwb("788830567028");
-        setTracking({
-          awb: "141123221084922",
-          currentStatus: "Delivered",
-          currentLocation: "Chittoor",
-          etd: "2022-07-20 19:28:00",
-          activities: [
-            { date: "2022-07-19 11:37:00", activity: "Delivered",                   location: "MADANPALLI, Madanapalli, ANDHRA PRADESH", status: "DLVD" },
-            { date: "2022-07-19 08:57:00", activity: "Out for Delivery",             location: "MADANPALLI, Madanapalli, ANDHRA PRADESH", status: "OFD"  },
-            { date: "2022-07-19 07:33:00", activity: "Reached at Destination",       location: "MADANPALLI, Madanapalli, ANDHRA PRADESH", status: "RAD"  },
-            { date: "2022-07-18 21:02:00", activity: "InTransit",                    location: "BLR/FC1, BANGALORE, KARNATAKA",           status: "IT"   },
-            { date: "2022-07-18 20:28:00", activity: "Picked Shipment InScan",       location: "BLR/FC1, BANGALORE, KARNATAKA",           status: "PKD"  },
-            { date: "2022-07-18 13:50:00", activity: "PickDone",                     location: "RTO/CHD, BANGALORE, KARNATAKA",           status: "PUD"  },
-            { date: "2022-07-18 10:04:00", activity: "Out for Pickup",               location: "RTO/CHD, BANGALORE, KARNATAKA",           status: "OFP"  },
-            { date: "2022-07-18 09:51:00", activity: "Pending Manifest Data Received", location: "RTO/CHD, BANGALORE, KARNATAKA",         status: "DRC"  },
-          ],
-        });
-      } else {
-        // prod: real awbCode required
-        if (!order?.awbCode) return;
-        const res = await userOrderTrackingApi.trackByAwb(order.awbCode);
-        setTracking(res?.data ?? null);
+  useEffect(() => {
+    const fetchTracking = async () => {
+      setTrackLoading(true);
+      setTrackError(null);
+      try {
+        if (isDevelopment) {
+          // dev: fake data, no awbCode check needed
+          await userOrderTrackingApi.trackByAwb("788830567028");
+          setTracking({
+            awb: "141123221084922",
+            currentStatus: "Delivered",
+            currentLocation: "Chittoor",
+            etd: "2022-07-20 19:28:00",
+            activities: [
+              {
+                date: "2022-07-19 11:37:00",
+                activity: "Delivered",
+                location: "MADANPALLI, Madanapalli, ANDHRA PRADESH",
+                status: "DLVD",
+              },
+              {
+                date: "2022-07-19 08:57:00",
+                activity: "Out for Delivery",
+                location: "MADANPALLI, Madanapalli, ANDHRA PRADESH",
+                status: "OFD",
+              },
+              {
+                date: "2022-07-19 07:33:00",
+                activity: "Reached at Destination",
+                location: "MADANPALLI, Madanapalli, ANDHRA PRADESH",
+                status: "RAD",
+              },
+              {
+                date: "2022-07-18 21:02:00",
+                activity: "InTransit",
+                location: "BLR/FC1, BANGALORE, KARNATAKA",
+                status: "IT",
+              },
+              {
+                date: "2022-07-18 20:28:00",
+                activity: "Picked Shipment InScan",
+                location: "BLR/FC1, BANGALORE, KARNATAKA",
+                status: "PKD",
+              },
+              {
+                date: "2022-07-18 13:50:00",
+                activity: "PickDone",
+                location: "RTO/CHD, BANGALORE, KARNATAKA",
+                status: "PUD",
+              },
+              {
+                date: "2022-07-18 10:04:00",
+                activity: "Out for Pickup",
+                location: "RTO/CHD, BANGALORE, KARNATAKA",
+                status: "OFP",
+              },
+              {
+                date: "2022-07-18 09:51:00",
+                activity: "Pending Manifest Data Received",
+                location: "RTO/CHD, BANGALORE, KARNATAKA",
+                status: "DRC",
+              },
+            ],
+          });
+        } else {
+          // prod: real awbCode required
+          if (!order?.awbCode) return;
+          const res = await userOrderTrackingApi.trackByAwb(order.awbCode);
+          setTracking(res?.data ?? null);
+        }
+      } catch (err: unknown) {
+        setTrackError(
+          err instanceof Error ? err.message : "Could not fetch tracking.",
+        );
+      } finally {
+        setTrackLoading(false);
       }
-    } catch (err: unknown) {
-      setTrackError(err instanceof Error ? err.message : "Could not fetch tracking.");
-    } finally {
-      setTrackLoading(false);
-    }
-  };
+    };
 
-  fetchTracking();
-}, [order]);
+    fetchTracking();
+  }, [order]);
 
   if (loading) {
     return (
@@ -295,9 +365,7 @@ useEffect(() => {
     );
   }
 
-  const shouldShow = isDevelopment 
-  ? (order.awbCode || tracking) 
-  : order.awbCode;
+  const shouldShow = isDevelopment ? order.awbCode || tracking : order.awbCode;
 
   const isCancelled = order.orderStatus === "cancelled";
   const currentStep = isCancelled
@@ -328,6 +396,15 @@ useEffect(() => {
             {statusCfg.icon}
             {statusCfg.label}
           </span>
+          {canCancel && (
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="p-2 -mr-2 rounded-xl text-red-500 hover:bg-red-50 transition-colors"
+              title="Cancel order"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -685,6 +762,69 @@ useEffect(() => {
           </a>
         </motion.div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      <AnimatePresence>
+        {showCancelConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4"
+            onClick={() => !cancelLoading && setShowCancelConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-sm shadow-lg p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-full bg-red-50">
+                  <AlertCircle size={20} className="text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-neutral-900">
+                  Cancel Order?
+                </h3>
+              </div>
+
+              <p className="text-sm text-neutral-600 mb-6">
+                This order will be cancelled and your payment will be refunded
+                to your original payment method. This may take 5-7 business
+                days.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelConfirm(false)}
+                  disabled={cancelLoading}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium border border-neutral-200 rounded-xl text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-50"
+                >
+                  Keep Order
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={cancelLoading}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {cancelLoading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Cancelling...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      Cancel Order
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

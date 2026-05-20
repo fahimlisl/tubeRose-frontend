@@ -144,7 +144,6 @@ export interface CouponResult {
   message: string;
 }
 
-// user.api.ts
 export const userWalletApi = {
   getSettings: () => request("/user/wallet-settings", { authContext: "user" }),
 };
@@ -159,6 +158,15 @@ export const userAuthSettings = {
     request("/user/change/password", {
       method: "POST",
       body: payload,
+      authContext: "user",
+    }),
+};
+
+export const userReviewApi = {
+  add: (productId: string, data: { title: string; body: string; rating: number } | FormData) =>
+    request(`/user/review/add/${productId}`, {
+      method:      "POST",
+      body:        data,
       authContext: "user",
     }),
 };

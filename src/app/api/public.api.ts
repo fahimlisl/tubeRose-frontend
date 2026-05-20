@@ -58,3 +58,7 @@ export const publicShippingInfoApi = {
   get: () => request("/public/shipping/info"),
 };
  
+export const publicReviewApi = {
+  getAll: (productId: string) =>
+    request(`/public/fetch/review/all?productId=${productId}`),
+};

@@ -203,6 +203,42 @@ function ImageUploadPicker({
   );
 }
 
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-[999] bg-black/90 flex items-center justify-center p-4"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+        >
+          <X size={28} />
+        </button>
+        <motion.img
+          src={src}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={e => e.stopPropagation()} 
+          className="max-w-full max-h-[90vh] object-contain rounded-xl"
+        />
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export function ProductDetailPage() {
   const { id }     = useParams();
   const navigate   = useNavigate();
@@ -227,6 +263,7 @@ export function ProductDetailPage() {
   const [reviewForm,     setReviewForm]     = useState({ title: "", body: "", rating: 0 });
   const [reviewImages,   setReviewImages]   = useState<File[]>([]);
   const [reviewError,    setReviewError]    = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (product?.sizes?.length) {
@@ -294,7 +331,11 @@ export function ProductDetailPage() {
       reviewImages.forEach(file => formData.append("images", file));
 
       const res = await userReviewApi.add(id!, formData);
-      setReviews(prev => [res?.data, ...prev]);
+      const optimisticReview: IReview = {
+        ...res?.data,
+        user: { _id: user!._id, name: user!.name }, 
+      };
+      setReviews(prev => [optimisticReview, ...prev]);
       setShowForm(false);
       setReviewForm({ title: "", body: "", rating: 0 });
       setReviewImages([]);
@@ -738,10 +779,13 @@ export function ProductDetailPage() {
                     {review.images && review.images.length > 0 && (
                       <div className="flex gap-2 mt-4 flex-wrap">
                         {review.images.map((img, idx) => (
-                          <a key={idx} href={img.url} target="_blank" rel="noopener noreferrer"
-                            className="w-16 h-16 rounded-xl overflow-hidden border border-neutral-100 hover:opacity-80 transition-opacity">
+                          <button
+                            key={idx}
+                            onClick={() => setLightboxSrc(img.url)}  // ← open lightbox
+                            className="w-16 h-16 rounded-xl overflow-hidden border border-neutral-100 hover:opacity-80 transition-opacity hover:scale-105 transition-transform"
+                          >
                             <img src={img.url} alt={`review image ${idx + 1}`} className="w-full h-full object-cover" />
-                          </a>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -753,6 +797,9 @@ export function ProductDetailPage() {
         </div>
 
       </div>
+      {lightboxSrc && (
+        <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 }

@@ -170,3 +170,8 @@ export const userReviewApi = {
       authContext: "user",
     }),
 };
+
+export const pincodeApi = {
+  check: (pincode: string) =>
+    request(`/public/check/serviceability?pincode=${pincode}`),
+};

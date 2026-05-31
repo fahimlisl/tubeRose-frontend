@@ -85,17 +85,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (parsed?.role === "user") {
             setUser(parsed);
           } else {
+            localStorage.removeItem("user_auth");
             setUser(null);
           }
         }
       } catch (err) {
-        console.error("Session check error:", err);
+        localStorage.removeItem("user_auth");
         setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
     checkSession();
+  }, []);
+
+  // listen for session expiry fired by the API layer
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { context } = (e as CustomEvent).detail;
+      setUser(null);
+      setAuthStep("idle");
+      setIsNewRegistration(false);
+      localStorage.removeItem("user_auth");
+      localStorage.removeItem(ANON_CART_KEY);
+      const alreadyOnAuth = window.location.pathname.includes("/auth");
+      if (!alreadyOnAuth) {
+        window.location.href = context === "admin" ? "/auth/admin" : "/auth";
+      }
+    };
+    window.addEventListener("auth:session-expired", handler);
+    return () => window.removeEventListener("auth:session-expired", handler);
   }, []);
 
   const login = async (identifier: string, password: string) => {

@@ -86,4 +86,11 @@ export const orderApi = {
     request<{ razorpayRefundId: string }>(`/order/admin/cancel/${orderId}`, {
       method: "POST",
     }),
+
+  createCod: (body: {
+    shippingAddress: IShippingAddressPayload;
+    discount?: { code: string; amount: number };
+    cartCategories: string[];
+    walletUsage: boolean;
+  }) => request("/order/user/create/cod", { method: "POST", body }),
 };

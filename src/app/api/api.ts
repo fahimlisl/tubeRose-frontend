@@ -73,13 +73,22 @@ export const request = async <T = any>(
     try {
       const refreshRes = await refreshPromise;
       if (!refreshRes.ok) throw new Error("Refresh failed");
-      return request(endpoint, options, false); // ✅ retry original
+      return request(endpoint, options, false); 
     } catch {
-      const alreadyOnAuth = window.location.pathname.includes("/auth");
-      if (!alreadyOnAuth) {
-        window.location.href = authContext === "admin" ? "/auth/admin" : "/auth";
-      }
-      throw new Error("Session expired, please login again.");
+        const logoutEndpoint =
+          authContext === "admin"
+            ? `${BASE_URL}/admin/logout`
+            : `${BASE_URL}/user/auth/logout`;
+
+      await fetch(logoutEndpoint, {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
+      window.dispatchEvent(new CustomEvent("auth:session-expired", { 
+        detail: { context: authContext } 
+  }));
+
+  throw new Error("Session expired, please login again.");
     }
   }
 

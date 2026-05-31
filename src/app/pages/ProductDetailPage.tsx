@@ -503,7 +503,7 @@ export function ProductDetailPage() {
                   {selectedSize && (
                     <span className="text-xs text-neutral-500">
                       {selectedSize.stock > 0
-                        ? `${selectedSize.stock} in stock`
+                        ? selectedSize.stock < 10 ? <span className="text-red-500">hurry up only {selectedSize.stock} left </span> : `${selectedSize.stock} in stock`
                         : <span className="text-red-500">Out of stock</span>}
                     </span>
                   )}

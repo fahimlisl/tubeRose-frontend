@@ -78,7 +78,14 @@ export function OrderSuccessPage() {
               </div>
               <div className="border-t border-neutral-100 mt-4 pt-4 flex justify-between font-medium">
                 <span>Total Paid</span>
-                <span>₹{order.totalAmount?.toLocaleString('en-IN')}</span>
+                  <span>
+                    ₹{order.totalAmount?.toLocaleString("en-IN")}
+                    {order?.walletBalanceUsed > 0 && (
+                      <span className="ml-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                        + ₹{order.walletBalanceUsed.toLocaleString("en-IN")} wallet
+                    </span>
+                  )}
+                </span>
               </div>
             </div>
 

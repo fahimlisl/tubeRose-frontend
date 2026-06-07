@@ -22,6 +22,7 @@ interface Order {
   paymentStatus: 'pending' | 'paid' | 'failed';
   totalAmount: number; baseAmount: number;
   createdAt: string; awbCode?: string; shiprocketStatus?: string;
+  walletBalanceUsed: number;
 }
 interface Address {
   _id?: string; fullName: string; phone: string; houseNo?: string;
@@ -210,7 +211,7 @@ export function AccountPage() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [newAddress, setNewAddress]           = useState(emptyAddress());
   const [savingAddress, setSavingAddress]     = useState(false);
-  const [showPwModal, setShowPwModal]         = useState(false);   // 👈 new
+  const [showPwModal, setShowPwModal]         = useState(false);  
 
   useEffect(() => {
     if (!user) return;
@@ -406,7 +407,11 @@ export function AccountPage() {
                                 )}
                               </div>
                               <div className="text-right shrink-0">
-                                <p className="font-semibold text-neutral-900">₹{order.totalAmount.toLocaleString('en-IN')}</p>
+                                <p className="font-semibold text-neutral-900">₹{order.totalAmount.toLocaleString      ('en-IN')}   {order?.walletBalanceUsed > 0 && (
+                                  <span className="ml-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                                    + ₹{order.walletBalanceUsed.toLocaleString("en-IN")} wallet
+                                  </span>
+                              )}</p>
                                 <button
                                   onClick={() => navigate(`/order/complete/${order._id}`)}
                                   className="text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors inline-flex items-center gap-1 mt-1"

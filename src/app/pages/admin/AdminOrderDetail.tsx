@@ -72,6 +72,7 @@ interface Order {
   discount?: { code: string; amount: string };
   createdAt: string;
   updatedAt: string;
+  walletBalanceUsed: number;
 }
 
 const ORDER_STEPS: OrderStatus[] = [
@@ -364,8 +365,13 @@ export function AdminOrderDetail() {
               )}
               <div className="flex items-center justify-between text-sm font-semibold pt-1 border-t border-neutral-100">
                 <span className="text-neutral-900">Total</span>
-                <span className="text-neutral-900 text-base">
+                <span>
                   ₹{order.totalAmount?.toLocaleString("en-IN")}
+                  {order?.walletBalanceUsed > 0 && (
+                    <span className="ml-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                      + ₹{order.walletBalanceUsed.toLocaleString("en-IN")} wallet
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
